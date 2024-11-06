@@ -1,28 +1,39 @@
-import express, { Request, Response } from 'express';
-import mongoose from 'mongoose';
-import connectToDatabase from './db';
+import express, { Request, Response, NextFunction } from 'express';
+import jwt from 'jsonwebtoken';
+import dotenv from 'dotenv';
+import { authRoutes } from './routes/authRoutes';
+import { userRoutes } from './routes/userRoutes';
 
+dotenv.config();
 const app = express();
-const PORT = 58588;
+const PORT = process.env.PORT || 5000;
 
-// Middleware para parsing de JSON
-app.use(express.json());
+app.use(express.json());  // Para interpretar JSON no corpo da requisição
 
-// Rota simples para verificar o funcionamento do servidor
-app.get('/', (req: Request, res: Response) => {
-  res.send('Servidor rodando');
-});
+// Middleware de autenticação JWT
+const authenticateJWT = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  const token = req.header('Authorization')?.replace('Bearer ', '');
+  if (!token) {
+    res.status(403).send('Access Denied');
+    return;  // Impede que o código continue após a resposta
+  }
 
-// Função para iniciar o servidor e a conexão com o banco de dados
-const startServer = async () => {
   try {
-    await connectToDatabase(); // Conectando ao MongoDB
-    app.listen(PORT, () => {
-      console.log(`Servidor rodando na porta ${PORT}`);
-    });
-  } catch (error) {
-    console.error('Erro ao iniciar o servidor:', error);
+    const user = jwt.verify(token, process.env.JWT_SECRET!);  // Verifica o token JWT
+    req.user = user;  // Adiciona a propriedade 'user' ao objeto 'req'
+    next();  // Passa o controle para o próximo middleware ou rota
+  } catch (err) {
+    res.status(403).send('Invalid Token');
   }
 };
 
-startServer();
+// Rotas públicas de autenticação
+app.use('/auth', authRoutes);
+
+// Rotas protegidas com JWT
+app.use('/user', authenticateJWT, userRoutes);
+
+// Iniciar o servidor
+app.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT}`);
+});

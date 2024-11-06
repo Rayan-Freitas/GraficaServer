@@ -13,25 +13,36 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
-const db_1 = __importDefault(require("./db"));
+const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
+const dotenv_1 = __importDefault(require("dotenv"));
+const authRoutes_1 = require("./routes/authRoutes");
+const userRoutes_1 = require("./routes/userRoutes");
+dotenv_1.default.config();
 const app = (0, express_1.default)();
-const PORT = 58588;
-// Middleware para parsing de JSON
-app.use(express_1.default.json());
-// Rota simples para verificar o funcionamento do servidor
-app.get('/', (req, res) => {
-    res.send('Servidor rodando');
-});
-// Função para iniciar o servidor e a conexão com o banco de dados
-const startServer = () => __awaiter(void 0, void 0, void 0, function* () {
+const PORT = process.env.PORT || 5000;
+app.use(express_1.default.json()); // Para interpretar JSON no corpo da requisição
+// Middleware de autenticação JWT
+const authenticateJWT = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a;
+    const token = (_a = req.header('Authorization')) === null || _a === void 0 ? void 0 : _a.replace('Bearer ', '');
+    if (!token) {
+        res.status(403).send('Access Denied');
+        return; // Impede que o código continue após a resposta
+    }
     try {
-        yield (0, db_1.default)(); // Conectando ao MongoDB
-        app.listen(PORT, () => {
-            console.log(`Servidor rodando na porta ${PORT}`);
-        });
+        const user = jsonwebtoken_1.default.verify(token, process.env.JWT_SECRET); // Verifica o token JWT
+        req.user = user; // Adiciona a propriedade 'user' ao objeto 'req'
+        next(); // Passa o controle para o próximo middleware ou rota
     }
-    catch (error) {
-        console.error('Erro ao iniciar o servidor:', error);
+    catch (err) {
+        res.status(403).send('Invalid Token');
     }
 });
-startServer();
+// Rotas públicas de autenticação
+app.use('/auth', authRoutes_1.authRoutes);
+// Rotas protegidas com JWT
+app.use('/user', authenticateJWT, userRoutes_1.userRoutes);
+// Iniciar o servidor
+app.listen(PORT, () => {
+    console.log(`Server is running on port ${PORT}`);
+});
