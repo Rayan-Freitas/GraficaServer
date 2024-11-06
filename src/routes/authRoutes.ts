@@ -1,56 +1,70 @@
-import express, { Request, Response } from 'express';
+// routes/authRoutes.ts
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import dotenv from 'dotenv';
-
-dotenv.config();
+import connectToDatabase from '../db';
+import express from 'express';
 
 const router = express.Router();
 
-// Mock de banco de dados de usuários
-let users: { [key: string]: any } = {};
-
-// Função para gerar o token JWT
-const generateToken = (userId: string) => {
-  return jwt.sign({ userId }, process.env.JWT_SECRET!, { expiresIn: '1h' });
-};
-
-// Rota de registro
+// Função para registrar o usuário
 router.post('/register', async (req: any, res: any) => {
-  const { username, password } = req.body;
-  
-  // Verifica se o usuário já existe
-  if (users[username]) {
-    return res.status(400).send('User already exists');
-  }
+  const { email, password, name } = req.body;
 
-  // Criptografa a senha
-  const hashedPassword = await bcrypt.hash(password, 10);
-  
-  // Adiciona o novo usuário no "banco de dados"
-  users[username] = { username, password: hashedPassword };
-  
-  // Retorna uma mensagem de sucesso
-  res.status(201).send('User registered');
+  try {
+    // Conectar ao banco de dados
+    const db = await connectToDatabase();
+    const usersCollection = db.collection('users');  // A coleção 'users' no banco 'grafica'
+
+    // Verificar se o usuário já existe
+    const userExists = await usersCollection.findOne({ email });
+    if (userExists) {
+      return res.status(400).json({ message: 'Email já registrado' });
+    }
+
+    // Criptografar a senha
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    // Inserir o novo usuário na coleção
+    const result = await usersCollection.insertOne({ email, password: hashedPassword, name });
+
+    // Gerar o JWT
+    const token = jwt.sign({ userId: result.insertedId }, process.env.JWT_SECRET!, { expiresIn: '1h' });
+
+    return res.status(201).json({ message: 'Usuário registrado com sucesso', token });
+  } catch (error: any) {
+    return res.status(500).json({ message: 'Erro ao registrar usuário', error: error.message });
+  }
 });
 
-// Rota de login
+// Função para login do usuário
 router.post('/login', async (req: any, res: any) => {
-  const { username, password } = req.body;
+  const { email, password } = req.body;
 
-  const user = users[username];
-  if (!user) {
-    return res.status(400).send('Invalid credentials');
+  try {
+    // Conectar ao banco de dados
+    const db = await connectToDatabase();
+    const usersCollection = db.collection('users');  // A coleção 'users' no banco 'grafica'
+
+    // Verificar se o usuário existe
+    const user = await usersCollection.findOne({ email });
+    if (!user) {
+      return res.status(400).json({ message: 'Usuário não encontrado' });
+    }
+
+    // Comparar a senha
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      return res.status(400).json({ message: 'Senha incorreta' });
+    }
+
+    // Gerar o JWT
+    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET!, { expiresIn: '1h' });
+
+    return res.status(200).json({ message: 'Login bem-sucedido', token });
+  } catch (error: any) {
+    return res.status(500).json({ message: 'Erro ao fazer login', error: error.message });
   }
-
-  const validPassword = await bcrypt.compare(password, user.password);
-  if (!validPassword) {
-    return res.status(400).send('Invalid credentials');
-  }
-
-  // Gera o token JWT
-  const token = generateToken(user.username);
-  res.json({ token });
 });
 
 export { router as authRoutes };
