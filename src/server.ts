@@ -27,6 +27,11 @@ const authenticateJWT = async (req: Request, res: Response, next: NextFunction):
   }
 };
 
+// Rotas de Teste
+app.get('/', (req: Request, res: Response) => {
+    res.send('Servidor rodando');
+  });
+
 // Rotas públicas de autenticação
 app.use('/auth', authRoutes);
 
