@@ -30,6 +30,8 @@ router.post('/pedidos', async (req: Request, res: Response) => {
     });
     res.status(201).json(result.ops[0]);
   } catch (error) {
+    console.log("Erro ao Criar o Pedido");
+    console.log(error);
     res.status(500).json({ error: 'Erro ao criar o pedido' });
   }
 });
