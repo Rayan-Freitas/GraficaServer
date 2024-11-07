@@ -59,7 +59,7 @@ app.use('/auth', authRoutes);
 app.use('/user', authenticateJWT, userRoutes);
 
 // Rotas privadas de pedidos
-app.use('/pedidos', authenticateJWT, pedidosRoutes);
+app.use('', authenticateJWT, pedidosRoutes);
 
 // Iniciar o servidor
 app.listen(PORT, () => {
