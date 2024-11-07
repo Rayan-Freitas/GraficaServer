@@ -98,4 +98,4 @@ router.delete('/pedidos/:id', async (req: any, res: any) => {
   }
 });
 
-export default router;
+export { router as pedidosRoutes };

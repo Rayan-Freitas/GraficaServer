@@ -3,6 +3,7 @@ import jwt from 'jsonwebtoken';
 import dotenv from 'dotenv';
 import { authRoutes } from './routes/authRoutes';
 import { userRoutes } from './routes/userRoutes';
+import { pedidosRoutes } from './routes/pedidosRoutes'
 import cors from 'cors';
 
 dotenv.config();
@@ -56,6 +57,9 @@ app.use('/auth', authRoutes);
 
 // Rotas protegidas com JWT
 app.use('/user', authenticateJWT, userRoutes);
+
+// Rotas privadas de pedidos
+app.use('/pedidos', authenticateJWT, pedidosRoutes);
 
 // Iniciar o servidor
 app.listen(PORT, () => {
