@@ -7,7 +7,6 @@ import cors from 'cors';
 
 dotenv.config();
 const app = express();
-
 const PORT = process.env.PORT || 5000;
 
 app.use(cors());
@@ -29,6 +28,23 @@ const authenticateJWT = async (req: Request, res: Response, next: NextFunction):
     res.status(403).send('Invalid Token');
   }
 };
+
+// Rotas de Validação JWT para verificar sessões
+app.post('/jwt', (req: Request, res: Response): any => {
+  const token = req.header('Authorization')?.replace('Bearer ', '');  // Obtém o token do cabeçalho
+  if (!token) {
+    return res.status(403).send('Access Denied');  // Se não houver token, retorna erro
+  }
+  try {
+    // Verifica se o token é válido usando a chave secreta
+    const decoded = jwt.verify(token, process.env.JWT_SECRET!);  // Verifica a assinatura do JWT
+    // Retorna um status 200 com as informações do token decodificado, indicando que o token é válido
+    return res.status(200).json({ valid: true, data: decoded });
+  } catch (err) {
+    // Se o token for inválido ou expirado, retorna erro 403
+    return res.status(403).send('Invalid or expired token');
+  }
+});
 
 // Rotas de Teste
 app.get('/', (req: Request, res: Response) => {
