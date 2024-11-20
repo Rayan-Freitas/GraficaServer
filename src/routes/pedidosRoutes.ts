@@ -20,7 +20,7 @@ router.post('/pedidos', async (req: any, res: any) => {
 
   try {
     const decoded: any = jwt.verify(token, process.env.JWT_SECRET as string); // Decodifica o token JWT
-    const idusuario = decoded._id; // Obtém o ID do usuário do payload do token
+    const idusuario = decoded.userId; // Obtém o ID do usuário do payload do token
 
     const { nome, datacriacao, datapagamento, dataalteracao, valor, quantidade, descricao, wstatus, idmodelo, idfuncionariobaixa } = req.body;
 
