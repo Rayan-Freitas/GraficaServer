@@ -1,20 +1,29 @@
 import express, { Request, Response } from 'express';
 import connectToDatabase from '../db';
 import { ObjectId } from 'mongodb';
+import jwt from 'jsonwebtoken';
 
 const router = express.Router();
 
 // Conectando ao banco de dados
 let db: any;
 connectToDatabase()
-  .then(database => db = database)
-  .catch(error => console.error("Erro ao conectar ao banco de dados:", error));
+  .then(database => (db = database))
+  .catch(error => console.error('Erro ao conectar ao banco de dados:', error));
 
 // Rota para criar um pedido
-router.post('/pedidos', async (req: Request, res: Response) => {
-  const { nome, datacriacao, datapagamento, dataalteracao, valor, quantidade, descricao, wstatus, idmodelo, idusuario, idfuncionariobaixa } = req.body;
-  
+router.post('/pedidos', async (req: any, res: any) => {
+  const token = req.header('Authorization')?.replace('Bearer ', '');
+  if (!token) {
+    return res.status(401).json({ error: 'Token não fornecido' });
+  }
+
   try {
+    const decoded: any = jwt.verify(token, process.env.JWT_SECRET as string); // Decodifica o token JWT
+    const idusuario = decoded._id; // Obtém o ID do usuário do payload do token
+
+    const { nome, datacriacao, datapagamento, dataalteracao, valor, quantidade, descricao, wstatus, idmodelo, idfuncionariobaixa } = req.body;
+
     const result = await db.collection('pedidos').insertOne({
       nome,
       datacriacao,
@@ -25,19 +34,23 @@ router.post('/pedidos', async (req: Request, res: Response) => {
       descricao,
       wstatus,
       idmodelo,
-      idusuario,
-      idfuncionariobaixa
+      idusuario, // Adiciona o ID do usuário obtido do token JWT
+      idfuncionariobaixa,
     });
-    res.sendStatus(201);
+
+    res.status(201).json({ message: 'Pedido criado com sucesso', pedidoId: result.insertedId });
   } catch (error) {
     res.status(500).json({ error: 'Erro ao criar o pedido' });
   }
 });
 
-// Rota para obter todos os pedidos
-router.get('/pedidos', async (_req: Request, res: Response) => {
+// Rota para obter todos os pedidos do usuário autenticado
+router.get('/pedidos', async (req: Request, res: Response) => {
   try {
-    const pedidos = await db.collection('pedidos').find({ wstatus: { $ne: 'X' } }).toArray();
+    const pedidos = await db.collection('pedidos').find({
+      idusuario: req.user.userId, // Filtra pedidos pelo ID do usuário autenticado
+      wstatus: { $ne: 'X' },
+    }).toArray();
     res.json(pedidos);
   } catch (error) {
     res.status(500).json({ error: 'Erro ao buscar pedidos' });
@@ -49,7 +62,11 @@ router.get('/pedidos/:id', async (req: any, res: any) => {
   const { id } = req.params;
 
   try {
-    const pedido = await db.collection('pedidos').findOne({ _id: new ObjectId(id), wstatus: { $ne: 'X' } });
+    const pedido = await db.collection('pedidos').findOne({
+      _id: new ObjectId(id),
+      idusuario: req.user.userId, // Verifica se o pedido pertence ao usuário autenticado
+      wstatus: { $ne: 'X' },
+    });
     if (!pedido) {
       return res.status(404).json({ error: 'Pedido não encontrado' });
     }
@@ -62,12 +79,16 @@ router.get('/pedidos/:id', async (req: any, res: any) => {
 // Rota para atualizar um pedido específico por ID
 router.put('/pedidos/:id', async (req: any, res: any) => {
   const { id } = req.params;
-  const { nome, datapagamento, dataalteracao, valor, quantidade, descricao, wstatus, idmodelo, idusuario, idfuncionariobaixa } = req.body;
+  const { nome, datapagamento, dataalteracao, valor, quantidade, descricao, wstatus, idmodelo, idfuncionariobaixa } = req.body;
 
   try {
     const result = await db.collection('pedidos').findOneAndUpdate(
-      { _id: new ObjectId(id), wstatus: { $ne: 'X' } },
-      { $set: { nome, datapagamento, dataalteracao, valor, quantidade, descricao, wstatus, idmodelo, idusuario, idfuncionariobaixa } },
+      {
+        _id: new ObjectId(id),
+        idusuario: req.user.userId, // Garante que o pedido pertence ao usuário autenticado
+        wstatus: { $ne: 'X' },
+      },
+      { $set: { nome, datapagamento, dataalteracao, valor, quantidade, descricao, wstatus, idmodelo, idfuncionariobaixa } },
       { returnDocument: 'after' }
     );
     if (!result.value) {
@@ -85,7 +106,11 @@ router.delete('/pedidos/:id', async (req: any, res: any) => {
 
   try {
     const result = await db.collection('pedidos').findOneAndUpdate(
-      { _id: new ObjectId(id), wstatus: { $ne: 'X' } },
+      {
+        _id: new ObjectId(id),
+        idusuario: req.user.userId, // Garante que o pedido pertence ao usuário autenticado
+        wstatus: { $ne: 'X' },
+      },
       { $set: { wstatus: 'X' } },
       { returnDocument: 'after' }
     );
