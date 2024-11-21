@@ -40,6 +40,7 @@ const isAuthorized = async (req: any, res: Response, next: Function) => {
 
     return res.status(403).json({ message: 'Acesso negado' });
   } catch (error) {
+    console.log(error)
     return res.status(403).json({ message: 'Token inválido', error });
   }
 };
