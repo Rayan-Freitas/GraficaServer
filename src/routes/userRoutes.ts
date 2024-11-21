@@ -48,7 +48,7 @@ const isAuthorized = async (req: any, res: Response, next: Function) => {
 router.get('/profile', isAuthorized, async (req: any, res: any) => {
   try {
     const user = req.user;
-    res.json({ username: user.username, email: user.email, endereco: user.endereco ?? '' });
+    res.json({ userId: user._id, username: user.username, email: user.email, endereco: user.endereco ?? '' });
   } catch (error) {
     res.status(500).json({ message: 'Erro ao obter perfil', error });
   }
