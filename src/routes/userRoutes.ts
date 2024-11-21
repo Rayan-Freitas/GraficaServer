@@ -60,11 +60,17 @@ router.put('/update/:id', isAuthorized, async (req: any, res: any) => {
     const { nome, email } = req.body;
     const updates: any = { nome, email };
 
+    // Converte o id para ObjectId
+    const userId = new ObjectId(req.params.id);
+
     const user = await db.collection('users').findOneAndUpdate(
-      { _id: new ObjectId(req.params.id) },
+      { _id: userId },  // Verifica se o ID está correto
       { $set: updates },
       { returnDocument: 'after' }
     );
+
+    console.log(userId)
+    console.log(user)
 
     if (!user.value) {
       return res.status(404).json({ message: 'Usuário não encontrado' });
@@ -72,9 +78,11 @@ router.put('/update/:id', isAuthorized, async (req: any, res: any) => {
 
     res.json({ message: 'Dados atualizados com sucesso', user: user.value });
   } catch (error) {
+    console.error('Erro ao atualizar dados', error);
     res.status(500).json({ message: 'Erro ao atualizar dados', error });
   }
 });
+
 
 // Rota para deletar o usuário
 router.delete('/delete/:id', isAuthorized, async (req: any, res: any) => {
