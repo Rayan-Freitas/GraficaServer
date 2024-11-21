@@ -5,6 +5,7 @@ import jwt from 'jsonwebtoken';
 
 const router = express.Router();
 
+
 // Middleware para verificar permissões
 const isAuthorized = async (req: any, res: Response, next: Function) => {
   const token = req.headers.authorization?.split(' ')[1]; // Obtém o token JWT do header Authorization
@@ -40,9 +41,12 @@ const isAuthorized = async (req: any, res: Response, next: Function) => {
 };
 
 // Rota para obter os dados do perfil do usuário logado
-router.get('/profile', async (req: any, res: any) => {
+router.get('/profile', isAuthorized, async (req: any, res: any) => {
   try {
-    const user = await User.findById(req.user._id).select('-password');
+    const token = req.headers.authorization?.split(' ')[1]; // Obtém o token JWT do header Authorization
+    const decoded: any = jwt.verify(token, process.env.JWT_SECRET || '');
+    const { userId } = decoded; // 'userId' extraído do JWT
+    const user = await User.findById(userId).select('-password');
     if (!user) {
       return res.status(404).json({ message: 'Usuário não encontrado' });
     }
