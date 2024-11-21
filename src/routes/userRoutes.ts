@@ -8,15 +8,13 @@ const router = express.Router();
 
 // Middleware para verificar permissões
 const isAuthorized = async (req: any, res: Response, next: Function) => {
-  const token = req.headers.authorization?.split(' ')[1]; // Obtém o token JWT do header Authorization
-  
+  const token = req.header('Authorization')?.replace('Bearer ', '');
   if (!token) {
-    return res.status(401).json({ message: 'Token não fornecido' });
+    return res.status(401).json({ error: 'Token não fornecido' });
   }
 
   try {
-    // Decodifica o token
-    const decoded: any = jwt.verify(token, process.env.JWT_SECRET || '');
+    const decoded: any = jwt.verify(token, process.env.JWT_SECRET as string); // Decodifica o token JWT
     const { userId } = decoded; // 'userId' extraído do JWT
     
     // Busca o usuário no banco de dados para verificar se é admin
@@ -43,8 +41,8 @@ const isAuthorized = async (req: any, res: Response, next: Function) => {
 // Rota para obter os dados do perfil do usuário logado
 router.get('/profile', isAuthorized, async (req: any, res: any) => {
   try {
-    const token = req.headers.authorization?.split(' ')[1]; // Obtém o token JWT do header Authorization
-    const decoded: any = jwt.verify(token, process.env.JWT_SECRET || '');
+    const token = req.header('Authorization')?.replace('Bearer ', '');
+    const decoded: any = jwt.verify(token, process.env.JWT_SECRET as string); // Decodifica o token JWT
     const { userId } = decoded; // 'userId' extraído do JWT
     const user = await User.findById(userId).select('-password');
     if (!user) {
