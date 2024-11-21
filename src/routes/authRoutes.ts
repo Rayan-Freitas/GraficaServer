@@ -27,7 +27,13 @@ router.post('/register', async (req: Request, res: Response): Promise<void> => {
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    const result = await usersCollection.insertOne({ email, password: hashedPassword, username });
+    const result = await usersCollection.insertOne({
+      email,
+      password: hashedPassword,
+      username,
+      isAdmin: false, // Novo campo: usuário começa sem privilégios de administrador
+      endereco: '',   // Novo campo: endereço vazio ao registrar
+    });
 
     const userPayload = {
       userId: result.insertedId,
