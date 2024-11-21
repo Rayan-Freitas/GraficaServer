@@ -16,9 +16,15 @@ const isAuthorized = async (req: any, res: Response, next: Function) => {
   try {
     const decoded: any = jwt.verify(token, process.env.JWT_SECRET as string); // Decodifica o token JWT
     const { userId } = decoded; // 'userId' extraído do JWT
+
+    console.log("decodificado")
+    console.log(decoded)
     
     // Busca o usuário no banco de dados para verificar se é admin
     const user:any = await User.findById(userId);
+
+    console.log("user")
+    console.log(user)
     
     if (!user) {
       return res.status(404).json({ message: 'Usuário não encontrado' });
