@@ -60,17 +60,21 @@ router.put('/update/:id', isAuthorized, async (req: any, res: any) => {
     const { nome, email } = req.body;
     const updates: any = { nome, email };
 
-    // Converte o id para ObjectId
+    // Converte o id para ObjectId, garantido que é um ID válido
     const userId = new ObjectId(req.params.id);
 
+    // Verifique no log se o ObjectId foi criado corretamente
+    console.log(`Consultando usuário com id: ${userId}`);
+
+    // Fazendo a consulta ao banco
     const user = await db.collection('users').findOneAndUpdate(
-      { _id: userId },  // Verifica se o ID está correto
+      { _id: userId },
       { $set: updates },
       { returnDocument: 'after' }
     );
 
-    console.log(userId)
-    console.log(user)
+    // Verificando o retorno da consulta
+    console.log(user);
 
     if (!user.value) {
       return res.status(404).json({ message: 'Usuário não encontrado' });
