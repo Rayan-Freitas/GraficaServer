@@ -57,14 +57,8 @@ router.get('/profile', isAuthorized, async (req: any, res: any) => {
 // Rota para atualizar os dados do usuário
 router.put('/update/:id', isAuthorized, async (req: any, res: any) => {
   try {
-    const { nome, email, endereco, novaSenha } = req.body;
-    const updates: any = { nome, email, endereco };
-
-    // Atualiza a senha somente se ela for fornecida
-    if (novaSenha) {
-      const salt = await bcrypt.genSalt(10);
-      updates.password = await bcrypt.hash(novaSenha, salt);
-    }
+    const { nome, email } = req.body;
+    const updates: any = { nome, email };
 
     const user = await db.collection('users').findOneAndUpdate(
       { _id: new ObjectId(req.params.id) },
