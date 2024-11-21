@@ -28,7 +28,7 @@ const isAuthorized = async (req: any, res: Response, next: Function) => {
     req.user = user;
 
     // Verifica se o usuário tem permissão de admin ou se ele está acessando seus próprios dados
-    if (user.isAdmin || req.params.id === user._id.toString()) {
+    if (user.isAdmin || user._id.toString() === userId) {
       return next();
     }
 
